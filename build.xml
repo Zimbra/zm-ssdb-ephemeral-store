@@ -16,8 +16,9 @@
     <mkdir dir="${extension.dist.dir}"/>
   </target>
 
-  <target name="deploy" depends="jar">
+  <target name="deploy" depends="jar,set-dev-version">
     <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+  	<echo> Copying ${build.dir}/${jar.file} to ${extension.deploy.dir}</echo>
     <copy todir="${extension.deploy.dir}">
       <fileset dir="${build.dir}" includes="${jar.file}" />
     </copy>
