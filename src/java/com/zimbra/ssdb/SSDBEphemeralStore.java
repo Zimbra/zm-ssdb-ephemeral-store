@@ -37,29 +37,22 @@ public class SSDBEphemeralStore extends EphemeralStore {
         try (Jedis jedis = pool.getResource()) {
             jedis.set(attribute.getKey(), attribute.getValue().toString());
         }
-
     }
 
     @Override
     public void update(EphemeralInput attribute, EphemeralLocation location) throws ServiceException {
+        set(attribute, location);
+    }
+
+
+    @Override
+    public void delete(String key, String value, EphemeralLocation location) throws ServiceException {
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void delete(String key, EphemeralLocation location) throws ServiceException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void deleteValue(String key, String value, EphemeralLocation location) throws ServiceException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public boolean hasKey(String key, EphemeralLocation location) throws ServiceException {
+    public boolean has(String key, String value, EphemeralLocation location) throws ServiceException {
         // TODO Auto-generated method stub
         return false;
     }
@@ -133,5 +126,13 @@ public class SSDBEphemeralStore extends EphemeralStore {
                 instance = null;
             }
         }
+    }
+    
+    public static String toKey(EphemeralInput input, EphemeralLocation location) {
+        return "";
+    }
+    
+    public static String toValue(EphemeralInput input, EphemeralLocation location) {
+        return "";
     }
 }
