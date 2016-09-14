@@ -4,6 +4,11 @@ import com.zimbra.cs.ephemeral.AttributeEncoder;
 import com.zimbra.cs.ephemeral.EphemeralKey;
 import com.zimbra.cs.ephemeral.EphemeralKeyValuePair;
 
+/**
+ * 
+ * @author Greg Solovyev
+ *
+ */
 public class SSDBAttributeEncoder extends AttributeEncoder {
 
     public SSDBAttributeEncoder() {

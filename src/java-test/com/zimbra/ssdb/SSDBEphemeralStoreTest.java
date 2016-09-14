@@ -2,6 +2,7 @@ package com.zimbra.ssdb;
 
 import static org.junit.Assert.*;
 
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -90,6 +91,28 @@ public class SSDBEphemeralStoreTest {
     }
     
     @Test
+    public void testDelete() throws ServiceException {
+        EphemeralStore.setFactory(SSDBEphemeralStore.Factory.class);
+        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+        assertTrue(store instanceof SSDBEphemeralStore);
+        
+        ((SSDBEphemeralStore)store).setPool(mockJedisPool);
+        EphemeralLocation cosLocation = new EphemeralLocation() {
+            @Override
+            public String[] getLocation() { return new String[] { "cos", "47e456be-b00a-465e-a1db-4b53e64fa" }; }
+        };
+        expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
+        expect(jedis.del("cos|47e456be-b00a-465e-a1db-4b53e64fa|someattr")).andReturn(null);
+        jedis.close();
+        replay(mockJedisPool);
+        replay(jedis);
+        EphemeralKey eKey = new EphemeralKey("someattr");
+        store.delete(eKey, "value", cosLocation);
+        verify(mockJedisPool);
+        verify(jedis);
+    }
+    
+    @Test
     public void testSetDynamic() throws ServiceException {
         EphemeralStore.setFactory(SSDBEphemeralStore.Factory.class);
         EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
@@ -104,6 +127,32 @@ public class SSDBEphemeralStoreTest {
         };
         expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
         expect(jedis.set("domain|47e456be-b00a-465e-a1db-4b53e64fa|testK|testD","testV")).andReturn("testK");
+        jedis.close();
+        replay(mockJedisPool);
+        replay(jedis);
+        store.set(kv, domainLocation);
+        verify(mockJedisPool);
+        verify(jedis);
+    }
+    
+    @Test
+    public void testSetWithTTL() throws ServiceException {
+        EphemeralStore.setFactory(SSDBEphemeralStore.Factory.class);
+        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+        assertTrue(store instanceof SSDBEphemeralStore);
+        
+        EphemeralKey eKey = new EphemeralKey("testK", "testD");
+        Long millis = Calendar.getInstance().getTimeInMillis();
+        Expiration exp = new Expiration(millis+2000, TimeUnit.MILLISECONDS);
+        int ttl = (int)(exp.getMillis()/1000);
+        EphemeralInput kv = new EphemeralInput(eKey,"testV", exp);
+        ((SSDBEphemeralStore)store).setPool(mockJedisPool);
+        EphemeralLocation domainLocation = new EphemeralLocation() {
+            @Override
+            public String[] getLocation() { return new String[] { "domain", "47e456be-b00a-465e-a1db-4b53e64fa" }; }
+        };
+        expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
+        expect(jedis.setex("domain|47e456be-b00a-465e-a1db-4b53e64fa|testK|testD",ttl,"testV")).andReturn("testK");
         jedis.close();
         replay(mockJedisPool);
         replay(jedis);

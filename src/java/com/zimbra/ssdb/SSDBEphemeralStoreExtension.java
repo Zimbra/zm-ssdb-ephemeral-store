@@ -7,6 +7,11 @@ import com.zimbra.cs.extension.ZimbraExtension;
 import com.zimbra.qa.unittest.TestSSDBEphemeralStore;
 import com.zimbra.qa.unittest.ZimbraSuite;
 
+/**
+ * 
+ * @author Greg Solovyev
+ *
+ */
 public class SSDBEphemeralStoreExtension implements ZimbraExtension {
     public static final String EXTENSION_NAME = "com_zimbra_ssdb_ephemeral_store";
     @Override

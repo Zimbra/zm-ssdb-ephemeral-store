@@ -1,10 +1,10 @@
 package com.zimbra.qa.unittest;
 
-import static org.junit.Assert.*;
+import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
+
 import junit.framework.TestCase;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import redis.clients.jedis.Jedis;
@@ -12,6 +12,7 @@ import redis.clients.jedis.JedisPool;
 
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
+import com.zimbra.cs.ephemeral.EphemeralInput.Expiration;
 import com.zimbra.cs.ephemeral.EphemeralKey;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralResult;
@@ -245,5 +246,58 @@ public class TestSSDBEphemeralStore extends TestCase {
         assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey1, accountIDLocation).getValue());
         assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey2, accountIDLocation).getValue());
         assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey3, accountIDLocation).getValue());
+    }
+    
+    @Test
+    public void testAuthTokenExpiration() throws Exception {
+        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+        assertTrue(store instanceof SSDBEphemeralStore);
+        EphemeralLocation accountIDLocation = new EphemeralLocation() {
+            @Override
+            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+        };
+        EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
+        Long millis = Calendar.getInstance().getTimeInMillis();
+        Expiration exp = new Expiration(millis+1000, TimeUnit.MILLISECONDS);
+        EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION, exp);
+        store.set(attrVal1, accountIDLocation);
+        assertTrue("Token should be in SSDB before it expires", store.has(eKey1, accountIDLocation));
+        Thread.sleep(2000);
+        assertFalse("Token should be gone after 2 seconds", store.has(eKey1, accountIDLocation));
+    }
+    
+    @Test
+    public void testDeleteAuthToken() throws Exception {
+        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+        assertTrue(store instanceof SSDBEphemeralStore);
+        EphemeralLocation accountIDLocation = new EphemeralLocation() {
+            @Override
+            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+        };
+        EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
+        Long millis = Calendar.getInstance().getTimeInMillis();
+        Expiration exp = new Expiration(millis+600000, TimeUnit.MILLISECONDS);
+        EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION, exp);
+        store.set(attrVal1, accountIDLocation);
+        assertTrue("Token should be in SSDB after insertion", store.has(eKey1, accountIDLocation));
+        store.delete(eKey1, SAMPLE_AUTH_TOKEN_VERSION, accountIDLocation);
+        assertFalse("Token should be gone from SSDB after deletion", store.has(eKey1, accountIDLocation));
+    }
+    
+    @Test
+    public void testDeleteLastLogon() throws Exception {
+        String lastLogon = "20160912212057.178Z";
+        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+        assertTrue(store instanceof SSDBEphemeralStore);
+        EphemeralLocation accountIDLocation = new EphemeralLocation() {
+            @Override
+            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+        };
+        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
+        EphemeralInput attr = new EphemeralInput(eKey, lastLogon);
+        store.set(attr, accountIDLocation);
+        assertTrue("Last logon value should be present before deletion", store.has(eKey, accountIDLocation));
+        store.delete(eKey, lastLogon, accountIDLocation);
+        assertFalse("Last logon value should be gone after deletion", store.has(eKey, accountIDLocation));
     }
 }

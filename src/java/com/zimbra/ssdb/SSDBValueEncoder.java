@@ -3,7 +3,11 @@ package com.zimbra.ssdb;
 import com.zimbra.cs.ephemeral.EphemeralInput;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.ValueEncoder;
-
+/**
+ * 
+ * @author Greg Solovyev
+ *
+ */
 public class SSDBValueEncoder extends ValueEncoder {
 
     @Override
