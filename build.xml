@@ -18,6 +18,7 @@
 
   <target name="deploy" depends="jar,set-dev-version">
     <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+  	<delete dir="${extension.deploy.dir}"/>
   	<echo> Copying ${build.dir}/${jar.file} to ${extension.deploy.dir}</echo>
     <copy todir="${extension.deploy.dir}">
       <fileset dir="${build.dir}" includes="${jar.file}" />

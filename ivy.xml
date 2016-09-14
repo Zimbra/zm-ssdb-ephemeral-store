@@ -23,6 +23,7 @@
   </info>
   <dependencies>
 	<dependency org="org.easymock" name="easymock" rev="3.4" />
+	<dependency org="com.google.guava" name="guava" rev="13.0.1" />
 	<dependency org="zimbra" name="zm-store" rev="latest.integration" />
 	<dependency org="zimbra" name="zm-common" rev="latest.integration" />
 	<dependency org="zimbra" name="zm-client" rev="latest.integration" />

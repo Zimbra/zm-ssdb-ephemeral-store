@@ -8,6 +8,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
+import com.zimbra.cs.ephemeral.EphemeralKey;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralResult;
 import com.zimbra.cs.ephemeral.EphemeralStore;
@@ -19,12 +20,14 @@ public class SSDBEphemeralStore extends EphemeralStore {
     private JedisPool pool;
     public SSDBEphemeralStore(JedisPool pool) {
         this.pool = pool;
+        setAttributeEncoder(new SSDBAttributeEncoder());
     }
     @Override
-    public EphemeralResult get(String key, EphemeralLocation location) throws ServiceException {
+    public EphemeralResult get(EphemeralKey key, EphemeralLocation location) throws ServiceException {
         EphemeralResult retVal = null;
+        String encodedKey = encodeKey(key, location);
         try (Jedis jedis = pool.getResource()) {
-            String value = jedis.get(key);
+            String value = jedis.get(encodedKey);
             if(value != null) {
                 retVal = new EphemeralResult(key, value);    
             }
@@ -34,8 +37,10 @@ public class SSDBEphemeralStore extends EphemeralStore {
 
     @Override
     public void set(EphemeralInput attribute, EphemeralLocation location) throws ServiceException {
+        String encodedKey = encodeKey(attribute, location);
+        String encodedValue = encodeValue(attribute, location);
         try (Jedis jedis = pool.getResource()) {
-            jedis.set(attribute.getKey(), attribute.getValue().toString());
+            jedis.set(encodedKey, encodedValue);
         }
     }
 
@@ -46,19 +51,25 @@ public class SSDBEphemeralStore extends EphemeralStore {
 
 
     @Override
-    public void delete(String key, String value, EphemeralLocation location) throws ServiceException {
+    public void delete(EphemeralKey key, String value, EphemeralLocation location) throws ServiceException {
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    public boolean has(String key, String value, EphemeralLocation location) throws ServiceException {
-        // TODO Auto-generated method stub
+    public boolean has(EphemeralKey key, EphemeralLocation location) throws ServiceException {
+        String encodedKey = encodeKey(key, location);
+        try (Jedis jedis = pool.getResource()) {
+            String value = jedis.get(encodedKey);
+            if(value != null) {
+                return true;    
+            }
+        }
         return false;
     }
 
     @Override
-    public void purgeExpired(String key, EphemeralLocation location) throws ServiceException {
+    public void purgeExpired(EphemeralKey key, EphemeralLocation location) throws ServiceException {
         // TODO Auto-generated method stub
 
     }
@@ -127,12 +138,16 @@ public class SSDBEphemeralStore extends EphemeralStore {
             }
         }
     }
-    
-    public static String toKey(EphemeralInput input, EphemeralLocation location) {
-        return "";
+
+    public String toKey(EphemeralInput input, EphemeralLocation location) {
+        return encodeKey(input, location);
     }
     
-    public static String toValue(EphemeralInput input, EphemeralLocation location) {
-        return "";
+    public String toKey(EphemeralKey key, EphemeralLocation location) {
+        return encodeKey(key, location);
+    }
+    
+    public String toValue(EphemeralInput input, EphemeralLocation location) {
+        return encodeValue(input, location);
     }
 }
