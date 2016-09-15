@@ -1,29 +1,32 @@
 package com.zimbra.ssdb;
 
-import static org.junit.Assert.*;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
+import org.easymock.EasyMock;
+import org.easymock.Mock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import static org.easymock.EasyMock.*;
-
-import org.easymock.*;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
+import com.zimbra.cs.ephemeral.EphemeralInput.AbsoluteExpiration;
+import com.zimbra.cs.ephemeral.EphemeralInput.Expiration;
+import com.zimbra.cs.ephemeral.EphemeralInput.RelativeExpiration;
 import com.zimbra.cs.ephemeral.EphemeralKey;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
-import com.zimbra.cs.ephemeral.EphemeralResult;
 import com.zimbra.cs.ephemeral.EphemeralStore;
-import com.zimbra.cs.ephemeral.InMemoryEphemeralStore;
-import com.zimbra.cs.ephemeral.EphemeralInput.Expiration;
 import com.zimbra.cs.mailbox.MailboxTestUtil;
 
 public class SSDBEphemeralStoreTest {
@@ -142,8 +145,8 @@ public class SSDBEphemeralStoreTest {
         assertTrue(store instanceof SSDBEphemeralStore);
         
         EphemeralKey eKey = new EphemeralKey("testK", "testD");
-        Long millis = Calendar.getInstance().getTimeInMillis();
-        Expiration exp = new Expiration(millis+2000, TimeUnit.MILLISECONDS);
+        Long millis = System.currentTimeMillis();
+        Expiration exp = new RelativeExpiration(millis+2000, TimeUnit.MILLISECONDS);
         int ttl = (int)(exp.getMillis()/1000);
         EphemeralInput kv = new EphemeralInput(eKey,"testV", exp);
         ((SSDBEphemeralStore)store).setPool(mockJedisPool);
@@ -215,7 +218,7 @@ public class SSDBEphemeralStoreTest {
     
     @Test
     public void testAuthTokenToKey() throws ServiceException {
-        Expiration exp = new Expiration(1473761137744L, TimeUnit.MILLISECONDS);
+        Expiration exp = new AbsoluteExpiration(1473761137744L);
         EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraAuthTokens, "366778080");
         EphemeralInput input = new EphemeralInput(eKey, "8.7.0_GA_1659", exp);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
@@ -229,7 +232,7 @@ public class SSDBEphemeralStoreTest {
     
     @Test
     public void testAuthTokenToValue() throws ServiceException {
-        Expiration exp = new Expiration(1473761137744L, TimeUnit.MILLISECONDS);
+        Expiration exp = new AbsoluteExpiration(1473761137744L);
         EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraAuthTokens, "8.7.0_GA_1659");
         EphemeralInput input = new EphemeralInput(eKey, "8.7.0_GA_1659", exp);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
@@ -243,7 +246,7 @@ public class SSDBEphemeralStoreTest {
     
     @Test
     public void testCsrfTokenToValue() throws ServiceException {
-        Expiration exp = new Expiration(1473761137744L, TimeUnit.MILLISECONDS);
+        Expiration exp = new AbsoluteExpiration(1473761137744L);
         EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, "3822663c52f27487f172055ddc0918aa");
         EphemeralInput input = new EphemeralInput(eKey, "69643d33363a30666532376439312d656339342d346534352d383436342d3339326262383736313364383b6578703d31333a313437333735383435373138323b7369643d31303a313135303130393434363b", exp);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
@@ -257,7 +260,7 @@ public class SSDBEphemeralStoreTest {
     
     @Test
     public void testCsrfTokenToKey() throws ServiceException {
-        Expiration exp = new Expiration(1473761137744L, TimeUnit.MILLISECONDS);
+        Expiration exp = new AbsoluteExpiration(1473761137744L);
         EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, "3822663c52f27487f172055ddc0918aa");
         EphemeralInput input = new EphemeralInput(eKey, "69643d33363a30666532376439312d656339342d346534352d383436342d3339326262383736313364383b6578703d31333a313437333735383435373138323b7369643d31303a313135303130393434363b", exp);
 
