@@ -12,7 +12,10 @@ public class SSDBValueEncoder extends ValueEncoder {
 
     @Override
     public String encodeValue(EphemeralInput input, EphemeralLocation target) {
-        return input.getValue().toString();
+        if(input == null || input.getValue() == null) {
+            return null;
+        } else {
+            return input.getValue().toString();
+        }
     }
-
 }
