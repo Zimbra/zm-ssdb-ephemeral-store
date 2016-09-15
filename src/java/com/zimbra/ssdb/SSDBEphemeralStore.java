@@ -46,15 +46,14 @@ public class SSDBEphemeralStore extends EphemeralStore {
     }
     @Override
     public EphemeralResult get(EphemeralKey key, EphemeralLocation location) throws ServiceException {
-        EphemeralResult retVal = null;
         String encodedKey = encodeKey(key, location);
         try (Jedis jedis = pool.getResource()) {
             String value = jedis.get(encodedKey);
             if(value != null) {
-                retVal = new EphemeralResult(key, value);    
+                return new EphemeralResult(key, value);    
             }
         }
-        return retVal;
+        return EphemeralResult.emptyResult(key);
     }
 
     @Override
@@ -62,10 +61,17 @@ public class SSDBEphemeralStore extends EphemeralStore {
         String encodedKey = encodeKey(attribute, location);
         String encodedValue = encodeValue(attribute, location);
         try (Jedis jedis = pool.getResource()) {
-            if(attribute.getExpiration() == null) {
-                jedis.set(encodedKey, encodedValue);    
+            if(encodedValue != null) {
+                if(attribute.getExpiration() == null) {
+                    jedis.set(encodedKey, encodedValue);    
+                } else {
+                    int ttl = (int)((attribute.getExpiration() - System.currentTimeMillis())/1000);
+                    if(ttl > 0) {
+                        jedis.setex(encodedKey, ttl, encodedValue);    
+                    }
+                }
             } else {
-                jedis.setex(encodedKey, (int)(attribute.getExpiration()/1000), encodedValue);    
+                this.delete(attribute.getEphemeralKey(), "", location);
             }
         }
     }
