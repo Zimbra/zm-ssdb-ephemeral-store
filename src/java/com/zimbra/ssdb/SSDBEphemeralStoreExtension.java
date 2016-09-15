@@ -2,6 +2,7 @@ package com.zimbra.ssdb;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.ephemeral.EphemeralStore;
 import com.zimbra.cs.extension.ExtensionException;
 import com.zimbra.cs.extension.ZimbraExtension;
 import com.zimbra.qa.unittest.TestSSDBEphemeralStore;
@@ -21,6 +22,7 @@ public class SSDBEphemeralStoreExtension implements ZimbraExtension {
 
     @Override
     public void init() throws ExtensionException, ServiceException {
+        EphemeralStore.registerFactory("ssdb", SSDBEphemeralStore.Factory.class.getName());
         try {
             ZimbraSuite.addTest(TestSSDBEphemeralStore.class);
         } catch (NoClassDefFoundError e) {
@@ -31,8 +33,6 @@ public class SSDBEphemeralStoreExtension implements ZimbraExtension {
 
     @Override
     public void destroy() {
-        // TODO Auto-generated method stub
-
+        // nothing to do here for now
     }
-
 }
