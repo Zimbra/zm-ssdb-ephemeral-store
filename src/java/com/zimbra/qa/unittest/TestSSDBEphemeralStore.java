@@ -1,6 +1,5 @@
 package com.zimbra.qa.unittest;
 
-import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
@@ -12,7 +11,7 @@ import redis.clients.jedis.JedisPool;
 
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
-import com.zimbra.cs.ephemeral.EphemeralInput.Expiration;
+import com.zimbra.cs.ephemeral.EphemeralInput.RelativeExpiration;
 import com.zimbra.cs.ephemeral.EphemeralKey;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralResult;
@@ -32,238 +31,268 @@ public class TestSSDBEphemeralStore extends TestCase {
     private String SAMPLE_AUTH_TOKEN3 = "437745690"; 
     private String SAMPLE_AUTH_TOKEN_VERSION = "8.7.0_GA_1659";
     private String ACCOUNT_ID = "47e456be-b00a-465e-a1db-4b53e64fa";
+    private boolean SSDBStoreConfigured = false;
     @Override
     public void setUp() throws Exception {
-        EphemeralStore.setFactory(SSDBEphemeralStore.Factory.class);
-        store = SSDBEphemeralStore.getFactory().getStore();
-        SSDBEphemeralStore.getFactory().startup();
-        
+        String ssdbUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
+        String toks[] = ssdbUrl.split(":");
+        if(toks != null && toks.length == 3 && "ssdb".equalsIgnoreCase(toks[0])) {
+            SSDBStoreConfigured = true;
+            EphemeralStore.setFactory(SSDBEphemeralStore.Factory.class);
+            store = SSDBEphemeralStore.getFactory().getStore();
+            SSDBEphemeralStore.getFactory().startup();
+        } else {
+            SSDBStoreConfigured = false;
+        }
     }
 
     @Override
     public void tearDown() throws Exception {
-        String ssdbUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
-        String toks[] = ssdbUrl.split(":");
-        SSDBEphemeralStore.getFactory().shutdown();
-        try {
-            try(JedisPool pool = new JedisPool(toks[1], Integer.parseInt(toks[2]))) {
-                try (Jedis jedis = pool.getResource()) {
-                    jedis.flushDB();
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            String ssdbUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
+            String toks[] = ssdbUrl.split(":");
+            SSDBEphemeralStore.getFactory().shutdown();
+            try {
+                try(JedisPool pool = new JedisPool(toks[1], Integer.parseInt(toks[2]))) {
+                    try (Jedis jedis = pool.getResource()) {
+                        jedis.flushDB();
+                    }
                 }
+            } catch (ClassCastException e) {
+                //ignore
             }
-        } catch (ClassCastException e) {
-            //ignore
         }
     }
 
     @Test    
     public void testSetGetLastLogin() throws Exception {
-        String firstLogin = "20160912212057.178Z";
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
-        };
-        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
-        EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
-        store.set(attr, accountIDLocation);
-        
-        EphemeralResult retAttr = store.get(eKey, accountIDLocation);
-        assertNotNull(retAttr);
-        assertEquals("Found incorrect last logon timestamp value",firstLogin, retAttr.getValue());
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            String firstLogin = "20160912212057.178Z";
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
+            };
+            EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
+            EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
+            store.set(attr, accountIDLocation);
+            
+            EphemeralResult retAttr = store.get(eKey, accountIDLocation);
+            assertNotNull(retAttr);
+            assertEquals("Found incorrect last logon timestamp value",firstLogin, retAttr.getValue());
+        }
     }
 
     @Test    
     public void testSetGetOverwriteLastLogin() throws Exception {
-        String firstLogin = "20160912212057.178Z";
-        String lastLogin = "20160912220045.178Z";
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
-        };
-        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
-        EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
-        EphemeralInput attrLatest = new EphemeralInput(eKey, lastLogin);
-        store.set(attr, accountIDLocation);
-        store.set(attrLatest, accountIDLocation);
-        EphemeralResult retAttr = store.get(eKey, accountIDLocation);
-        assertNotNull(retAttr);
-        assertEquals("Found incorrect last logon timestamp value",lastLogin, retAttr.getValue());
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            String firstLogin = "20160912212057.178Z";
+            String lastLogin = "20160912220045.178Z";
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
+            };
+            EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
+            EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
+            EphemeralInput attrLatest = new EphemeralInput(eKey, lastLogin);
+            store.set(attr, accountIDLocation);
+            store.set(attrLatest, accountIDLocation);
+            EphemeralResult retAttr = store.get(eKey, accountIDLocation);
+            assertNotNull(retAttr);
+            assertEquals("Found incorrect last logon timestamp value",lastLogin, retAttr.getValue());
+        }
     }
     
     @Test    
     public void testSetUpdateLastLogin() throws Exception {
-        String firstLogin = "20160912212057.178Z";
-        String lastLogin = "20160912220045.178Z";
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
-        };
-        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
-        EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
-        EphemeralInput attrLatest = new EphemeralInput(eKey, lastLogin);
-        store.set(attr, accountIDLocation);
-        store.update(attrLatest, accountIDLocation);
-        EphemeralResult retAttr = store.get(eKey, accountIDLocation);
-        assertNotNull(retAttr);
-        assertEquals("Found incorrect last logon timestamp value", lastLogin, retAttr.getValue());
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            String firstLogin = "20160912212057.178Z";
+            String lastLogin = "20160912220045.178Z";
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
+            };
+            EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
+            EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
+            EphemeralInput attrLatest = new EphemeralInput(eKey, lastLogin);
+            store.set(attr, accountIDLocation);
+            store.update(attrLatest, accountIDLocation);
+            EphemeralResult retAttr = store.get(eKey, accountIDLocation);
+            assertNotNull(retAttr);
+            assertEquals("Found incorrect last logon timestamp value", lastLogin, retAttr.getValue());
+        }
     }
     
     @Test
     public void testHasValidAuthToken() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
-        };
-        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
-        EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_AUTH_TOKEN_VERSION);
-        store.set(attr, accountIDLocation);
-        assertTrue("Should find this auth token", store.has(eKey, accountIDLocation));
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
+            };
+            EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
+            EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_AUTH_TOKEN_VERSION);
+            store.set(attr, accountIDLocation);
+            assertTrue("Should find this auth token", store.has(eKey, accountIDLocation));
+        }
     }
     
     @Test
     public void testHasInvalidAuthToken() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
-        };
-        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
-        EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN2);
-        EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_AUTH_TOKEN_VERSION);
-        store.set(attr, accountIDLocation);
-        assertFalse("should not find this auth token ", store.has(eKey2, accountIDLocation));
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
+            };
+            EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
+            EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN2);
+            EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_AUTH_TOKEN_VERSION);
+            store.set(attr, accountIDLocation);
+            assertFalse("should not find this auth token ", store.has(eKey2, accountIDLocation));
+        }
     }
     
     
     @Test
     public void testHasValidCsrfToken() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
-        };
-        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
-        EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_CSRF_TOKEN_DATA);
-        store.set(attr, accountIDLocation);
-        assertTrue("Should find this CSRF token crumb", store.has(eKey, accountIDLocation));
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+            };
+            EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
+            EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_CSRF_TOKEN_DATA);
+            store.set(attr, accountIDLocation);
+            assertTrue("Should find this CSRF token crumb", store.has(eKey, accountIDLocation));
+        }
     }
     
     @Test
     public void testHasInvalidCsrfToken() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
-        };
-        EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
-        EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB2);
-        EphemeralInput attr = new EphemeralInput(eKey1, SAMPLE_CSRF_TOKEN_DATA);
-        store.set(attr, accountIDLocation);
-        assertFalse("should not find this CSRF token crumb ", store.has(eKey2, accountIDLocation));
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+            };
+            EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
+            EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB2);
+            EphemeralInput attr = new EphemeralInput(eKey1, SAMPLE_CSRF_TOKEN_DATA);
+            store.set(attr, accountIDLocation);
+            assertFalse("should not find this CSRF token crumb ", store.has(eKey2, accountIDLocation));
+        }
     }
     
     @Test
     public void testUpdateCsrfToken() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
-        };
-        EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
-        EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_CSRF_TOKEN_DATA);
-        EphemeralInput updatedAttr = new EphemeralInput(eKey, SAMPLE_CSRF_TOKEN_DATA2);
-        store.set(attr, accountIDLocation);
-        store.set(updatedAttr, accountIDLocation);
-        assertTrue("Should find the CSRF token crumb that was just saved", store.has(eKey, accountIDLocation));
-        assertEquals(SAMPLE_CSRF_TOKEN_DATA2, store.get(eKey, accountIDLocation).getValue());
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+            };
+            EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
+            EphemeralInput attr = new EphemeralInput(eKey, SAMPLE_CSRF_TOKEN_DATA);
+            EphemeralInput updatedAttr = new EphemeralInput(eKey, SAMPLE_CSRF_TOKEN_DATA2);
+            store.set(attr, accountIDLocation);
+            store.set(updatedAttr, accountIDLocation);
+            assertTrue("Should find the CSRF token crumb that was just saved", store.has(eKey, accountIDLocation));
+            assertEquals(SAMPLE_CSRF_TOKEN_DATA2, store.get(eKey, accountIDLocation).getValue());
+        }
     }
     
     @Test
     public void testMultipleCsrfTokens() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
-        };
-        EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
-        EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB2);
-        EphemeralKey eKey3 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB3);
-        
-        EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_CSRF_TOKEN_DATA);
-        EphemeralInput attrVal2 = new EphemeralInput(eKey2, SAMPLE_CSRF_TOKEN_DATA2);
-        EphemeralInput attrVal3 = new EphemeralInput(eKey3, SAMPLE_CSRF_TOKEN_DATA3);
-        
-        store.set(attrVal1, accountIDLocation);
-        store.set(attrVal2, accountIDLocation);
-        store.set(attrVal3, accountIDLocation);
-        
-        assertTrue(store.has(eKey1, accountIDLocation));
-        assertTrue(store.has(eKey2, accountIDLocation));
-        assertTrue(store.has(eKey3, accountIDLocation));
-        
-        assertEquals(SAMPLE_CSRF_TOKEN_DATA, store.get(eKey1, accountIDLocation).getValue());
-        assertEquals(SAMPLE_CSRF_TOKEN_DATA2, store.get(eKey2, accountIDLocation).getValue());
-        assertEquals(SAMPLE_CSRF_TOKEN_DATA3, store.get(eKey3, accountIDLocation).getValue());
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+            };
+            EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
+            EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB2);
+            EphemeralKey eKey3 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB3);
+            
+            EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_CSRF_TOKEN_DATA);
+            EphemeralInput attrVal2 = new EphemeralInput(eKey2, SAMPLE_CSRF_TOKEN_DATA2);
+            EphemeralInput attrVal3 = new EphemeralInput(eKey3, SAMPLE_CSRF_TOKEN_DATA3);
+            
+            store.set(attrVal1, accountIDLocation);
+            store.set(attrVal2, accountIDLocation);
+            store.set(attrVal3, accountIDLocation);
+            
+            assertTrue(store.has(eKey1, accountIDLocation));
+            assertTrue(store.has(eKey2, accountIDLocation));
+            assertTrue(store.has(eKey3, accountIDLocation));
+            
+            assertEquals(SAMPLE_CSRF_TOKEN_DATA, store.get(eKey1, accountIDLocation).getValue());
+            assertEquals(SAMPLE_CSRF_TOKEN_DATA2, store.get(eKey2, accountIDLocation).getValue());
+            assertEquals(SAMPLE_CSRF_TOKEN_DATA3, store.get(eKey3, accountIDLocation).getValue());
+        }
     }
     
     @Test
     public void testMultipleAuthTokens() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
-        };
-        EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
-        EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN2);
-        EphemeralKey eKey3 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN3);
-        
-        EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION);
-        EphemeralInput attrVal2 = new EphemeralInput(eKey2, SAMPLE_AUTH_TOKEN_VERSION);
-        EphemeralInput attrVal3 = new EphemeralInput(eKey3, SAMPLE_AUTH_TOKEN_VERSION);
-        
-        store.set(attrVal1, accountIDLocation);
-        store.set(attrVal2, accountIDLocation);
-        store.set(attrVal3, accountIDLocation);
-        
-        assertTrue(store.has(eKey1, accountIDLocation));
-        assertTrue(store.has(eKey2, accountIDLocation));
-        assertTrue(store.has(eKey3, accountIDLocation));
-        
-        assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey1, accountIDLocation).getValue());
-        assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey2, accountIDLocation).getValue());
-        assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey3, accountIDLocation).getValue());
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+            };
+            EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
+            EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN2);
+            EphemeralKey eKey3 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN3);
+            
+            EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION);
+            EphemeralInput attrVal2 = new EphemeralInput(eKey2, SAMPLE_AUTH_TOKEN_VERSION);
+            EphemeralInput attrVal3 = new EphemeralInput(eKey3, SAMPLE_AUTH_TOKEN_VERSION);
+            
+            store.set(attrVal1, accountIDLocation);
+            store.set(attrVal2, accountIDLocation);
+            store.set(attrVal3, accountIDLocation);
+            
+            assertTrue(store.has(eKey1, accountIDLocation));
+            assertTrue(store.has(eKey2, accountIDLocation));
+            assertTrue(store.has(eKey3, accountIDLocation));
+            
+            assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey1, accountIDLocation).getValue());
+            assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey2, accountIDLocation).getValue());
+            assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey3, accountIDLocation).getValue());
+        }
     }
     
     @Test
     public void testAuthTokenExpiration() throws Exception {
-        EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
-        assertTrue(store instanceof SSDBEphemeralStore);
-        EphemeralLocation accountIDLocation = new EphemeralLocation() {
-            @Override
-            public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
-        };
-        EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
-        Long millis = Calendar.getInstance().getTimeInMillis();
-        Expiration exp = new Expiration(millis+1000, TimeUnit.MILLISECONDS);
-        EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION, exp);
-        store.set(attrVal1, accountIDLocation);
-        assertTrue("Token should be in SSDB before it expires", store.has(eKey1, accountIDLocation));
-        Thread.sleep(2000);
-        assertFalse("Token should be gone after 2 seconds", store.has(eKey1, accountIDLocation));
+        if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
+            EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            EphemeralLocation accountIDLocation = new EphemeralLocation() {
+                @Override
+                public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
+            };
+            EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
+            RelativeExpiration exp = new RelativeExpiration(1000L, TimeUnit.MILLISECONDS);
+            EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION, exp);
+            store.set(attrVal1, accountIDLocation);
+            assertTrue("Token should be in SSDB before it expires", store.has(eKey1, accountIDLocation));
+            Thread.sleep(2000);
+            assertFalse("Token should be gone after 2 seconds", store.has(eKey1, accountIDLocation));
+        }
     }
     
     @Test
@@ -275,8 +304,7 @@ public class TestSSDBEphemeralStore extends TestCase {
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
         };
         EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
-        Long millis = Calendar.getInstance().getTimeInMillis();
-        Expiration exp = new Expiration(millis+600000, TimeUnit.MILLISECONDS);
+        RelativeExpiration exp = new RelativeExpiration(600000L, TimeUnit.MILLISECONDS);
         EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION, exp);
         store.set(attrVal1, accountIDLocation);
         assertTrue("Token should be in SSDB after insertion", store.has(eKey1, accountIDLocation));
