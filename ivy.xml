@@ -37,7 +37,7 @@
 	<dependency org="zimbra" name="zm-store" rev="latest.integration" />
 	<dependency org="zimbra" name="zm-common" rev="latest.integration" />
 	<dependency org="zimbra" name="zm-client" rev="latest.integration" />
-	<dependency org="zimbrastore-test" name="zimbrastore-test" rev="1" />
+	<!-- dependency org="zimbrastore-test" name="zimbrastore-test" rev="1" / --> <!-- Fix this: This is not avaiable. -->
 	<dependency org="junit" name="junit" rev="4.8.2" />
 	<dependency org="org.objenesis" name="objenesis" rev="2.4"/>
 	<dependency org="org.easymock" name="easymock" rev="3.4" />
