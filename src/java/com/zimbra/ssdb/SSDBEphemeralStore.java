@@ -171,6 +171,35 @@ public class SSDBEphemeralStore extends EphemeralStore {
                 instance = null;
             }
         }
+
+        @Override
+        public void test(String url) throws ServiceException {
+            String[] tokens = url.split(":");
+            if (tokens != null && tokens.length > 0) {
+                if(tokens[0].equalsIgnoreCase(SSDB_EPHEMERAL_STORE) && tokens.length >= 2) {
+                    String host = tokens[1];
+                    Integer port = null;
+                    if(tokens.length == 3) {
+                        try {
+                            port = Integer.parseInt(tokens[2]);
+                        } catch (NumberFormatException e) {
+                            throw ServiceException.FAILURE("Failed to parse SSDB port number", e);
+                        }
+                    }
+                    JedisPool pool;
+                    if(port != null) {
+                        pool = new JedisPool(host, port);
+                    } else {
+                        pool = new JedisPool(host);
+                    }
+                    try {
+                        pool.getResource();
+                    } finally {
+                        pool.close();
+                    }
+                }
+            }
+        }
     }
 
     @VisibleForTesting
