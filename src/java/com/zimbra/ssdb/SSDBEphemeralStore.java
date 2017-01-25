@@ -141,7 +141,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
                     return new JedisPool(host);
                 }
             } else {
-                throw ServiceException.FAILURE("SSDB backend URL must be of the form 'ssdb:<host>[:<port>]'", null);
+                throw ServiceException.FAILURE(String.format("SSDB backend URL must be of the form 'ssdb:<host>[:<port>]', got '%s'", url), null);
             }
         }
 
