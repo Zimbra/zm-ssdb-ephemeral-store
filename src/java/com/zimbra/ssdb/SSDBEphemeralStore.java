@@ -2,6 +2,7 @@ package com.zimbra.ssdb;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.zimbra.common.service.ServiceException;
@@ -120,6 +121,30 @@ public class SSDBEphemeralStore extends EphemeralStore {
 
         private static SSDBEphemeralStore instance;
 
+        private static JedisPool getPool(String url) throws ServiceException {
+            String host;
+            Integer port;
+            String[] tokens = url.split(":");
+            if (tokens != null && tokens.length >= 2 && tokens[0].equalsIgnoreCase(SSDB_EPHEMERAL_STORE)) {
+                host = tokens[1];
+                port = null;
+                if(tokens.length == 3) {
+                    try {
+                        port = Integer.parseInt(tokens[2]);
+                    } catch (NumberFormatException e) {
+                        throw ServiceException.FAILURE(String.format("Failed to parse SSDB port number %s", tokens[2]), e);
+                    }
+                }
+                if(port != null) {
+                    return new JedisPool(host, port);
+                } else {
+                    return new JedisPool(host);
+                }
+            } else {
+                throw ServiceException.FAILURE("SSDB backend URL must be of the form 'ssdb:<host>[:<port>]'", null);
+            }
+        }
+
         @Override
         public EphemeralStore getStore() {
             synchronized (Factory.class) {
@@ -128,27 +153,8 @@ public class SSDBEphemeralStore extends EphemeralStore {
                     try {
                         url = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
                         if (url != null) {
-                            String[] tokens = url.split(":");
-                            if (tokens != null && tokens.length > 0) {
-                                if(tokens[0].equalsIgnoreCase(SSDB_EPHEMERAL_STORE) && tokens.length >= 2) {
-                                    String host = tokens[1];
-                                    Integer port = null;
-                                    if(tokens.length == 3) {
-                                        try {
-                                            port = Integer.parseInt(tokens[2]);
-                                        } catch (NumberFormatException e) {
-                                            ZimbraLog.extensions.error("Failed to parse SSDB port number", e);
-                                        }
-                                    }
-                                    JedisPool pool;
-                                    if(port != null) {
-                                        pool = new JedisPool(host, port);
-                                    } else {
-                                        pool = new JedisPool(host);
-                                    }
-                                    instance = new SSDBEphemeralStore(pool);
-                                }
-                            }
+                            JedisPool pool = getPool(url);
+                            instance = new SSDBEphemeralStore(pool);
                         }
                     } catch (ServiceException e) {
                         ZimbraLog.extensions.error("Could not create an instance of SSDBEphemeralStore", e);
@@ -174,30 +180,13 @@ public class SSDBEphemeralStore extends EphemeralStore {
 
         @Override
         public void test(String url) throws ServiceException {
-            String[] tokens = url.split(":");
-            if (tokens != null && tokens.length > 0) {
-                if(tokens[0].equalsIgnoreCase(SSDB_EPHEMERAL_STORE) && tokens.length >= 2) {
-                    String host = tokens[1];
-                    Integer port = null;
-                    if(tokens.length == 3) {
-                        try {
-                            port = Integer.parseInt(tokens[2]);
-                        } catch (NumberFormatException e) {
-                            throw ServiceException.FAILURE("Failed to parse SSDB port number", e);
-                        }
-                    }
-                    JedisPool pool;
-                    if(port != null) {
-                        pool = new JedisPool(host, port);
-                    } else {
-                        pool = new JedisPool(host);
-                    }
-                    try {
-                        pool.getResource();
-                    } finally {
-                        pool.close();
-                    }
-                }
+            JedisPool pool = getPool(url);
+            try {
+                pool.getResource();
+            } catch (JedisConnectionException e) {
+                throw ServiceException.FAILURE(String.format("could not connect to SSDB on URL '%s'", url) , e);
+            } finally {
+                pool.close();
             }
         }
     }
