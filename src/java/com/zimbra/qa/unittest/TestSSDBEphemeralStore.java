@@ -9,7 +9,10 @@ import org.junit.Test;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import com.zimbra.common.service.ServiceException;
+import com.zimbra.cs.account.Config;
 import com.zimbra.cs.account.Provisioning;
+import com.zimbra.cs.account.soap.SoapProvisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
 import com.zimbra.cs.ephemeral.EphemeralInput.RelativeExpiration;
 import com.zimbra.cs.ephemeral.EphemeralKey;
@@ -26,9 +29,9 @@ public class TestSSDBEphemeralStore extends TestCase {
     private String SAMPLE_CSRF_TOKEN_CRUMB =  "3822663c52f27487f172055ddc0918aa";
     private String SAMPLE_CSRF_TOKEN_CRUMB2 = "2931453c52fb2487a172095ddc4908ac";
     private String SAMPLE_CSRF_TOKEN_CRUMB3 = "2c52f931453b248095dd7a172c49c08a";
-    private String SAMPLE_AUTH_TOKEN =  "366778080"; 
-    private String SAMPLE_AUTH_TOKEN2 = "456779043"; 
-    private String SAMPLE_AUTH_TOKEN3 = "437745690"; 
+    private String SAMPLE_AUTH_TOKEN =  "366778080";
+    private String SAMPLE_AUTH_TOKEN2 = "456779043";
+    private String SAMPLE_AUTH_TOKEN3 = "437745690";
     private String SAMPLE_AUTH_TOKEN_VERSION = "8.7.0_GA_1659";
     private String ACCOUNT_ID = "47e456be-b00a-465e-a1db-4b53e64fa";
     private boolean SSDBStoreConfigured = false;
@@ -64,7 +67,7 @@ public class TestSSDBEphemeralStore extends TestCase {
         }
     }
 
-    @Test    
+    @Test
     public void testSetGetLastLogin() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
             String firstLogin = "20160912212057.178Z";
@@ -77,14 +80,14 @@ public class TestSSDBEphemeralStore extends TestCase {
             EphemeralKey eKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
             EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
             store.set(attr, accountIDLocation);
-            
+
             EphemeralResult retAttr = store.get(eKey, accountIDLocation);
             assertNotNull(retAttr);
             assertEquals("Found incorrect last logon timestamp value",firstLogin, retAttr.getValue());
         }
     }
 
-    @Test    
+    @Test
     public void testSetGetOverwriteLastLogin() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
             String firstLogin = "20160912212057.178Z";
@@ -105,8 +108,8 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertEquals("Found incorrect last logon timestamp value",lastLogin, retAttr.getValue());
         }
     }
-    
-    @Test    
+
+    @Test
     public void testSetUpdateLastLogin() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
             String firstLogin = "20160912212057.178Z";
@@ -127,7 +130,7 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertEquals("Found incorrect last logon timestamp value", lastLogin, retAttr.getValue());
         }
     }
-    
+
     @Test
     public void testHasValidAuthToken() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -143,7 +146,7 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertTrue("Should find this auth token", store.has(eKey, accountIDLocation));
         }
     }
-    
+
     @Test
     public void testHasInvalidAuthToken() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -160,8 +163,8 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertFalse("should not find this auth token ", store.has(eKey2, accountIDLocation));
         }
     }
-    
-    
+
+
     @Test
     public void testHasValidCsrfToken() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -177,7 +180,7 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertTrue("Should find this CSRF token crumb", store.has(eKey, accountIDLocation));
         }
     }
-    
+
     @Test
     public void testHasInvalidCsrfToken() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -194,7 +197,7 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertFalse("should not find this CSRF token crumb ", store.has(eKey2, accountIDLocation));
         }
     }
-    
+
     @Test
     public void testUpdateCsrfToken() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -213,7 +216,7 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertEquals(SAMPLE_CSRF_TOKEN_DATA2, store.get(eKey, accountIDLocation).getValue());
         }
     }
-    
+
     @Test
     public void testMultipleCsrfTokens() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -226,25 +229,25 @@ public class TestSSDBEphemeralStore extends TestCase {
             EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB);
             EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB2);
             EphemeralKey eKey3 = new EphemeralKey(Provisioning.A_zimbraCsrfTokenData, SAMPLE_CSRF_TOKEN_CRUMB3);
-            
+
             EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_CSRF_TOKEN_DATA);
             EphemeralInput attrVal2 = new EphemeralInput(eKey2, SAMPLE_CSRF_TOKEN_DATA2);
             EphemeralInput attrVal3 = new EphemeralInput(eKey3, SAMPLE_CSRF_TOKEN_DATA3);
-            
+
             store.set(attrVal1, accountIDLocation);
             store.set(attrVal2, accountIDLocation);
             store.set(attrVal3, accountIDLocation);
-            
+
             assertTrue(store.has(eKey1, accountIDLocation));
             assertTrue(store.has(eKey2, accountIDLocation));
             assertTrue(store.has(eKey3, accountIDLocation));
-            
+
             assertEquals(SAMPLE_CSRF_TOKEN_DATA, store.get(eKey1, accountIDLocation).getValue());
             assertEquals(SAMPLE_CSRF_TOKEN_DATA2, store.get(eKey2, accountIDLocation).getValue());
             assertEquals(SAMPLE_CSRF_TOKEN_DATA3, store.get(eKey3, accountIDLocation).getValue());
         }
     }
-    
+
     @Test
     public void testMultipleAuthTokens() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -257,25 +260,25 @@ public class TestSSDBEphemeralStore extends TestCase {
             EphemeralKey eKey1 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN);
             EphemeralKey eKey2 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN2);
             EphemeralKey eKey3 = new EphemeralKey(Provisioning.A_zimbraAuthTokens, SAMPLE_AUTH_TOKEN3);
-            
+
             EphemeralInput attrVal1 = new EphemeralInput(eKey1, SAMPLE_AUTH_TOKEN_VERSION);
             EphemeralInput attrVal2 = new EphemeralInput(eKey2, SAMPLE_AUTH_TOKEN_VERSION);
             EphemeralInput attrVal3 = new EphemeralInput(eKey3, SAMPLE_AUTH_TOKEN_VERSION);
-            
+
             store.set(attrVal1, accountIDLocation);
             store.set(attrVal2, accountIDLocation);
             store.set(attrVal3, accountIDLocation);
-            
+
             assertTrue(store.has(eKey1, accountIDLocation));
             assertTrue(store.has(eKey2, accountIDLocation));
             assertTrue(store.has(eKey3, accountIDLocation));
-            
+
             assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey1, accountIDLocation).getValue());
             assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey2, accountIDLocation).getValue());
             assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey3, accountIDLocation).getValue());
         }
     }
-    
+
     @Test
     public void testAuthTokenExpiration() throws Exception {
         if(SSDBStoreConfigured) { //switch to assumptions when we upgrade test suite to Junit 4
@@ -294,7 +297,7 @@ public class TestSSDBEphemeralStore extends TestCase {
             assertFalse("Token should be gone after 2 seconds", store.has(eKey1, accountIDLocation));
         }
     }
-    
+
     @Test
     public void testDeleteAuthToken() throws Exception {
         EphemeralStore store = SSDBEphemeralStore.getFactory().getStore();
@@ -311,7 +314,7 @@ public class TestSSDBEphemeralStore extends TestCase {
         store.delete(eKey1, SAMPLE_AUTH_TOKEN_VERSION, accountIDLocation);
         assertFalse("Token should be gone from SSDB after deletion", store.has(eKey1, accountIDLocation));
     }
-    
+
     @Test
     public void testDeleteLastLogon() throws Exception {
         String lastLogon = "20160912212057.178Z";
@@ -327,5 +330,17 @@ public class TestSSDBEphemeralStore extends TestCase {
         assertTrue("Last logon value should be present before deletion", store.has(eKey, accountIDLocation));
         store.delete(eKey, lastLogon, accountIDLocation);
         assertFalse("Last logon value should be gone after deletion", store.has(eKey, accountIDLocation));
+    }
+
+    @Test
+    public void testBadUrl() throws ServiceException {
+        String[] badUrls = new String[]{"ssdb:badhost", "ssdb:badhost:badport"};
+        Config conf = SoapProvisioning.getInstance().getConfig();
+        for (String badUrl: badUrls) {
+            try {
+                conf.setEphemeralBackendURL(badUrl);
+                fail(String.format("should not be able to set backend URL to %s", badUrl));
+            } catch (ServiceException e) {}
+        }
     }
 }
