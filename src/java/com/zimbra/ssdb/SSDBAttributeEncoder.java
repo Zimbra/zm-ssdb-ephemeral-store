@@ -22,7 +22,7 @@ public class SSDBAttributeEncoder extends AttributeEncoder {
         String[] toks = key.split("|");
         if(toks.length < 3) {
             //SSDB uses format "entry type|entry ID|attribute name|optional dynamic part" for the key
-            throw ServiceException.PARSE_ERROR(String.format("unable to parse ephemeral value %s", value), null);
+            throw ServiceException.PARSE_ERROR(String.format("unable to parse ephemeral key %s", key), null);
         }
         EphemeralKey eKey = null;
         String attrName = toks[2];
