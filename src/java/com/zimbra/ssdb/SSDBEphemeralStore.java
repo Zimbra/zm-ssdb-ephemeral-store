@@ -66,7 +66,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
                 if(attribute.getExpiration() == null) {
                     jedis.set(encodedKey, encodedValue);
                 } else {
-                    int ttl = (int)((attribute.getExpiration() - System.currentTimeMillis())/1000);
+                    int ttl = (int)(attribute.getRelativeExpiration()/1000);
                     if(ttl > 0) {
                         jedis.setex(encodedKey, ttl, encodedValue);
                     }
