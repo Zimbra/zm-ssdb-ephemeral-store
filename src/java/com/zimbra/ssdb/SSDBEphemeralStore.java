@@ -10,6 +10,7 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
 import com.zimbra.cs.ephemeral.EphemeralKey;
+import com.zimbra.cs.ephemeral.EphemeralKeyValuePair;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralResult;
 import com.zimbra.cs.ephemeral.EphemeralStore;
@@ -49,9 +50,10 @@ public class SSDBEphemeralStore extends EphemeralStore {
     public EphemeralResult get(EphemeralKey key, EphemeralLocation location) throws ServiceException {
         String encodedKey = encodeKey(key, location);
         try (Jedis jedis = pool.getResource()) {
-            String value = jedis.get(encodedKey);
-            if(value != null) {
-                return new EphemeralResult(key, value);
+            String encodedValue = jedis.get(encodedKey);
+            if(encodedValue != null) {
+                EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
+                return new EphemeralResult(key, kvp.getValue());
             }
         }
         return EphemeralResult.emptyResult(key);
