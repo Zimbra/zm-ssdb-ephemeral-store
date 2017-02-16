@@ -38,7 +38,7 @@ public class SSDBAttributeEncoder extends AttributeEncoder {
             decodedValue = value.substring(0, value.length() - 1);
         } else {
             int lastPipeIdx = value.lastIndexOf("|");
-            decodedValue = value.substring(0, lastPipeIdx - 1);
+            decodedValue = value.substring(0, lastPipeIdx);
             String expiryStr = value.substring(lastPipeIdx + 1);
             try {
                 expires = Long.parseLong(expiryStr);
