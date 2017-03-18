@@ -1,5 +1,7 @@
 package com.zimbra.ssdb;
 
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -7,6 +9,7 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 import com.google.common.annotations.VisibleForTesting;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Config;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
 import com.zimbra.cs.ephemeral.EphemeralKey;
@@ -52,7 +55,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
         try (Jedis jedis = pool.getResource()) {
             String encodedValue = jedis.get(encodedKey);
             if(encodedValue != null) {
-                EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
+                 EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
                 return new EphemeralResult(key, kvp.getValue());
             }
         }
@@ -137,10 +140,22 @@ public class SSDBEphemeralStore extends EphemeralStore {
                         throw ServiceException.FAILURE(String.format("Failed to parse SSDB port number %s", tokens[2]), e);
                     }
                 }
-                if(port != null) {
-                    return new JedisPool(host, port);
+                GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+                Config conf = Provisioning.getInstance().getConfig();
+                int poolSize = conf.getSSDBResourcePoolSize();
+                if (poolSize == 0) {
+                    config.setMaxTotal(-1);
                 } else {
-                    return new JedisPool(host);
+                    config.setMaxTotal(poolSize);
+                }
+                long timeout = conf.getSSDBResourcePoolTimeout();
+                if (timeout > 0) {
+                    config.setMaxWaitMillis(timeout);
+                }
+                if(port != null) {
+                    return new JedisPool(config, host, port);
+                } else {
+                    return new JedisPool(config, host);
                 }
             } else {
                 throw ServiceException.FAILURE(String.format("SSDB backend URL must be of the form 'ssdb:<host>[:<port>]', got '%s'", url), null);
