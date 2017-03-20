@@ -5,6 +5,7 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.zimbra.common.service.ServiceException;
@@ -58,6 +59,8 @@ public class SSDBEphemeralStore extends EphemeralStore {
                 EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
                 return new EphemeralResult(key, kvp.getValue());
             }
+        } catch (JedisException e) {
+            throw wrapJedisException(e);
         }
         return EphemeralResult.emptyResult(key);
     }
@@ -79,6 +82,8 @@ public class SSDBEphemeralStore extends EphemeralStore {
             } else {
                 this.delete(attribute.getEphemeralKey(), "", location);
             }
+        } catch (JedisException e) {
+            throw wrapJedisException(e);
         }
     }
 
@@ -94,6 +99,8 @@ public class SSDBEphemeralStore extends EphemeralStore {
         String encodedKey = encodeKey(attribute, location);
         try (Jedis jedis = pool.getResource()) {
             jedis.del(encodedKey);
+        } catch (JedisException e) {
+            throw wrapJedisException(e);
         }
     }
 
@@ -105,6 +112,8 @@ public class SSDBEphemeralStore extends EphemeralStore {
             if(value != null) {
                 return true;
             }
+        } catch (JedisException e) {
+            throw wrapJedisException(e);
         }
         return false;
     }
@@ -120,6 +129,10 @@ public class SSDBEphemeralStore extends EphemeralStore {
 
     protected JedisPool getPool() {
         return pool;
+    }
+
+    private ServiceException wrapJedisException(JedisException e) {
+        return ServiceException.FAILURE("unable to perform SSDB operation", e);
     }
 
     public static class Factory implements EphemeralStore.Factory {
