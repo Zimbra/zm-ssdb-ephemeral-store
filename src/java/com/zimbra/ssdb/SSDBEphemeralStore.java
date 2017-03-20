@@ -55,7 +55,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
         try (Jedis jedis = pool.getResource()) {
             String encodedValue = jedis.get(encodedKey);
             if(encodedValue != null) {
-                 EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
+                EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
                 return new EphemeralResult(key, kvp.getValue());
             }
         }
