@@ -2,11 +2,6 @@ package com.zimbra.ssdb;
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisException;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
@@ -18,6 +13,11 @@ import com.zimbra.cs.ephemeral.EphemeralKeyValuePair;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralResult;
 import com.zimbra.cs.ephemeral.EphemeralStore;
+
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisException;
 
 /**
  *
@@ -150,29 +150,41 @@ public class SSDBEphemeralStore extends EphemeralStore {
                     try {
                         port = Integer.parseInt(tokens[2]);
                     } catch (NumberFormatException e) {
-                        throw ServiceException.FAILURE(String.format("Failed to parse SSDB port number %s", tokens[2]), e);
+                        throw ServiceException.FAILURE(
+                                String.format("Failed to parse SSDB port number %s", tokens[2]), e);
                     }
                 }
-                GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-                Config conf = Provisioning.getInstance().getConfig();
-                int poolSize = conf.getSSDBResourcePoolSize();
-                if (poolSize == 0) {
-                    config.setMaxTotal(-1);
-                } else {
-                    config.setMaxTotal(poolSize);
-                }
-                long timeout = conf.getSSDBResourcePoolTimeout();
-                if (timeout > 0) {
-                    config.setMaxWaitMillis(timeout);
-                }
+                GenericObjectPoolConfig config = getPoolConfig();
                 if(port != null) {
                     return new JedisPool(config, host, port);
                 } else {
                     return new JedisPool(config, host);
                 }
             } else {
-                throw ServiceException.FAILURE(String.format("SSDB backend URL must be of the form 'ssdb:<host>[:<port>]', got '%s'", url), null);
+                throw ServiceException.FAILURE(String.format(
+                        "SSDB backend URL must be of the form 'ssdb:<host>[:<port>]', got '%s'", url), null);
             }
+        }
+
+        private static GenericObjectPoolConfig getPoolConfig() {
+            GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+            try {
+                Config zimbraConf = Provisioning.getInstance().getConfig();
+                int poolSize = zimbraConf.getSSDBResourcePoolSize();
+                if (poolSize == 0) {
+                    poolConfig.setMaxTotal(-1);
+                } else {
+                    poolConfig.setMaxTotal(poolSize);
+                }
+                long timeout = zimbraConf.getSSDBResourcePoolTimeout();
+                if (timeout > 0) {
+                    poolConfig.setMaxWaitMillis(timeout);
+                }
+            } catch (ServiceException e) {
+                // Can happen from installer where LDAP isn't running
+                poolConfig.setMaxTotal(-1);
+            }
+            return poolConfig;
         }
 
         @Override
@@ -183,6 +195,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
                     try {
                         url = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
                         if (url != null) {
+                            @SuppressWarnings("resource")
                             JedisPool pool = getPool(url);
                             instance = new SSDBEphemeralStore(pool);
                         }
