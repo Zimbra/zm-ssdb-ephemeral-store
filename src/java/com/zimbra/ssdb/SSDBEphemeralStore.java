@@ -13,6 +13,7 @@ import com.zimbra.cs.ephemeral.EphemeralKeyValuePair;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralResult;
 import com.zimbra.cs.ephemeral.EphemeralStore;
+import com.zimbra.cs.ldap.LdapClient;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -166,24 +167,27 @@ public class SSDBEphemeralStore extends EphemeralStore {
             }
         }
 
-        private static GenericObjectPoolConfig getPoolConfig() {
+        /** Note that this falls back to hard coded defaults if LDAP is unavailable */
+        private static GenericObjectPoolConfig getPoolConfig() throws ServiceException {
             GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
             try {
-                Config zimbraConf = Provisioning.getInstance().getConfig();
-                int poolSize = zimbraConf.getSSDBResourcePoolSize();
-                if (poolSize == 0) {
-                    poolConfig.setMaxTotal(-1);
-                } else {
-                    poolConfig.setMaxTotal(poolSize);
-                }
-                long timeout = zimbraConf.getSSDBResourcePoolTimeout();
-                if (timeout > 0) {
-                    poolConfig.setMaxWaitMillis(timeout);
-                }
-            } catch (Exception e) {
-                ZimbraLog.extensions.info("Problem getting SSDB pool access config params", e);
+                LdapClient.initializeIfLDAPAvailable();
+            } catch (ServiceException se) {
+                ZimbraLog.extensions.info("Problem getting SSDB pool access config params", se);
                 // Can happen from installer where LDAP isn't running
                 poolConfig.setMaxTotal(-1);
+                return poolConfig;
+            }
+            Config zimbraConf = Provisioning.getInstance().getConfig();
+            int poolSize = zimbraConf.getSSDBResourcePoolSize();
+            if (poolSize == 0) {
+                poolConfig.setMaxTotal(-1);
+            } else {
+                poolConfig.setMaxTotal(poolSize);
+            }
+            long timeout = zimbraConf.getSSDBResourcePoolTimeout();
+            if (timeout > 0) {
+                poolConfig.setMaxWaitMillis(timeout);
             }
             return poolConfig;
         }
