@@ -180,7 +180,8 @@ public class SSDBEphemeralStore extends EphemeralStore {
                 if (timeout > 0) {
                     poolConfig.setMaxWaitMillis(timeout);
                 }
-            } catch (ServiceException e) {
+            } catch (Exception e) {
+                ZimbraLog.extensions.info("Problem getting SSDB pool access config params", e);
                 // Can happen from installer where LDAP isn't running
                 poolConfig.setMaxTotal(-1);
             }
