@@ -2,6 +2,11 @@ package com.zimbra.ssdb;
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisException;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
@@ -14,11 +19,6 @@ import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralResult;
 import com.zimbra.cs.ephemeral.EphemeralStore;
 import com.zimbra.cs.ldap.LdapClient;
-
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisException;
 
 /**
  *
@@ -252,5 +252,20 @@ public class SSDBEphemeralStore extends EphemeralStore {
     @VisibleForTesting
     public String toValue(EphemeralInput input, EphemeralLocation location) {
         return encodeValue(input, location);
+    }
+
+    @Override
+    public void deleteData(EphemeralLocation location) throws ServiceException {
+        /*
+         * The only ephemeral attribute that needs to be explicitly deleted is
+         * zimbraLastLogonTimestamp. Auth and CSRF tokens will expire automatically.
+         */
+        try (Jedis jedis = pool.getResource()) {
+            EphemeralKey lastLogonEphemeralKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
+            String encoded = encodeKey(lastLogonEphemeralKey, location);
+            jedis.del(encoded);
+        } catch (JedisException e) {
+            throw wrapJedisException(e);
+        }
     }
 }
