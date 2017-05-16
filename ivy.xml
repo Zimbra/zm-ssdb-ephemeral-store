@@ -32,7 +32,7 @@
     <dependency org="commons-codec" name="commons-codec" rev="1.7"/>
 	<dependency org="dom4j" name="dom4j" rev="1.5.2" />
 	<dependency org="log4j" name="log4j" rev="1.2.16" />
-	<dependency org="xerces" name="xercesImpl" rev="2.9.1"/>
+	<dependency org="xerces" name="xercesImpl" rev="2.9.1-patch-01"/>
     <dependency org="xerces" name="xmlParserAPIs" rev="2.6.2"/>
 	<dependency org="zimbra" name="zm-store" rev="latest.integration" />
 	<dependency org="zimbra" name="zm-common" rev="latest.integration" />
