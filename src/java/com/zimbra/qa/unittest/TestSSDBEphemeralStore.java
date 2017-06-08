@@ -55,18 +55,19 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Override
     public void tearDown() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
-        String ssdbUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
-        String toks[] = ssdbUrl.split(":");
-        SSDBEphemeralStore.getFactory().shutdown();
-        try {
-            try(JedisPool pool = new JedisPool(toks[1], Integer.parseInt(toks[2]))) {
-                try (Jedis jedis = pool.getResource()) {
-                    jedis.flushDB();
+        if (SSDBStoreConfigured) {
+            String ssdbUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
+            String toks[] = ssdbUrl.split(":");
+            SSDBEphemeralStore.getFactory().shutdown();
+            try {
+                try(JedisPool pool = new JedisPool(toks[1], Integer.parseInt(toks[2]))) {
+                    try (Jedis jedis = pool.getResource()) {
+                        jedis.flushDB();
+                    }
                 }
+            } catch (ClassCastException e) {
+                //ignore
             }
-        } catch (ClassCastException e) {
-            //ignore
         }
     }
 
