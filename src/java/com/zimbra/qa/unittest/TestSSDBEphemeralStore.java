@@ -45,7 +45,6 @@ public class TestSSDBEphemeralStore extends TestCase {
             SSDBStoreConfigured = true;
             EphemeralStore.setFactory(SSDBEphemeralStore.Factory.class);
             store = SSDBEphemeralStore.getFactory().getStore();
-            SSDBEphemeralStore.getFactory().startup();
         } else {
             SSDBStoreConfigured = false;
         }
