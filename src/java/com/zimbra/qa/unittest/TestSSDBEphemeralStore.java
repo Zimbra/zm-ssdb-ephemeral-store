@@ -42,9 +42,12 @@ public class TestSSDBEphemeralStore extends TestCase {
         String ssdbUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
         String toks[] = ssdbUrl.split(":");
         if(toks != null && toks.length == 3 && "ssdb".equalsIgnoreCase(toks[0])) {
-            SSDBStoreConfigured = true;
             EphemeralStore.setFactory(SSDBEphemeralStore.Factory.class);
-            store = SSDBEphemeralStore.getFactory().getStore();
+            EphemeralStore.Factory factory = EphemeralStore.getFactory();
+            factory.test(ssdbUrl);
+            store = factory.getStore();
+            assertTrue(store instanceof SSDBEphemeralStore);
+            SSDBStoreConfigured = true;
         } else {
             SSDBStoreConfigured = false;
         }
