@@ -9,9 +9,6 @@ import junit.framework.TestCase;
 import org.junit.Assume;
 import org.junit.Test;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.Pair;
 import com.zimbra.cs.account.Config;
@@ -50,10 +47,8 @@ public class TestSSDBEphemeralStore extends TestCase {
             EphemeralStore.Factory factory = EphemeralStore.getFactory();
             factory.test(ssdbUrl);
             store = factory.getStore();
-            assertTrue(store instanceof SSDBEphemeralStore);
+            assertTrue("EphemeralStore should be an instance of SSDBEPhemeralStore", store instanceof SSDBEphemeralStore);
             SSDBStoreConfigured = true;
-        } else {
-            SSDBStoreConfigured = false;
         }
     }
 
@@ -90,7 +85,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testSetGetLastLogin() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         String firstLogin = "20160912212057.178Z";
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
@@ -100,13 +95,13 @@ public class TestSSDBEphemeralStore extends TestCase {
         EphemeralInput attr = new EphemeralInput(eKey, firstLogin);
         doSet(attr, accountIDLocation);
         EphemeralResult retAttr = store.get(eKey, accountIDLocation);
-        assertNotNull(retAttr);
+        assertNotNull("Last logon timestamp should not be null", retAttr);
         assertEquals("Found incorrect last logon timestamp value",firstLogin, retAttr.getValue());
     }
 
     @Test
     public void testSetGetOverwriteLastLogin() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         String firstLogin = "20160912212057.178Z";
         String lastLogin = "20160912220045.178Z";
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
@@ -119,13 +114,13 @@ public class TestSSDBEphemeralStore extends TestCase {
         doSet(attr, accountIDLocation);
         doSet(attrLatest, accountIDLocation);
         EphemeralResult retAttr = store.get(eKey, accountIDLocation);
-        assertNotNull(retAttr);
+        assertNotNull("Last logon timestamp should not be null", retAttr);
         assertEquals("Found incorrect last logon timestamp value",lastLogin, retAttr.getValue());
     }
 
     @Test
     public void testSetUpdateLastLogin() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         String firstLogin = "20160912212057.178Z";
         String lastLogin = "20160912220045.178Z";
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
@@ -138,13 +133,13 @@ public class TestSSDBEphemeralStore extends TestCase {
         doSet(attr, accountIDLocation);
         doUpdate(attrLatest, accountIDLocation);
         EphemeralResult retAttr = store.get(eKey, accountIDLocation);
-        assertNotNull(retAttr);
+        assertNotNull("Last logon timestamp should not be null", retAttr);
         assertEquals("Found incorrect last logon timestamp value", lastLogin, retAttr.getValue());
     }
 
     @Test
     public void testHasValidAuthToken() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
@@ -157,7 +152,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testHasInvalidAuthToken() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account", ACCOUNT_ID }; }
@@ -172,7 +167,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testHasValidCsrfToken() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
@@ -185,7 +180,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testHasInvalidCsrfToken() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
@@ -199,7 +194,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testUpdateCsrfToken() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
@@ -215,7 +210,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testMultipleCsrfTokens() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
@@ -232,9 +227,9 @@ public class TestSSDBEphemeralStore extends TestCase {
         doSet(attrVal2, accountIDLocation);
         doSet(attrVal3, accountIDLocation);
 
-        assertTrue(store.has(eKey1, accountIDLocation));
-        assertTrue(store.has(eKey2, accountIDLocation));
-        assertTrue(store.has(eKey3, accountIDLocation));
+        assertTrue(String.format("Token data for crumb %s not found", SAMPLE_CSRF_TOKEN_CRUMB), store.has(eKey1, accountIDLocation));
+        assertTrue(String.format("Token data for crumb %s not found", SAMPLE_CSRF_TOKEN_CRUMB2), store.has(eKey2, accountIDLocation));
+        assertTrue(String.format("Token data for crumb %s not found", SAMPLE_CSRF_TOKEN_CRUMB3), store.has(eKey3, accountIDLocation));
 
         assertEquals(SAMPLE_CSRF_TOKEN_DATA, store.get(eKey1, accountIDLocation).getValue());
         assertEquals(SAMPLE_CSRF_TOKEN_DATA2, store.get(eKey2, accountIDLocation).getValue());
@@ -243,7 +238,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testMultipleAuthTokens() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
@@ -260,9 +255,9 @@ public class TestSSDBEphemeralStore extends TestCase {
         doSet(attrVal2, accountIDLocation);
         doSet(attrVal3, accountIDLocation);
 
-        assertTrue(store.has(eKey1, accountIDLocation));
-        assertTrue(store.has(eKey2, accountIDLocation));
-        assertTrue(store.has(eKey3, accountIDLocation));
+        assertTrue(String.format("Auth token %s not found", SAMPLE_AUTH_TOKEN), store.has(eKey1, accountIDLocation));
+        assertTrue(String.format("Auth token %s not found", SAMPLE_AUTH_TOKEN2), store.has(eKey2, accountIDLocation));
+        assertTrue(String.format("Auth token %s not found", SAMPLE_AUTH_TOKEN3), store.has(eKey3, accountIDLocation));
 
         assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey1, accountIDLocation).getValue());
         assertEquals(SAMPLE_AUTH_TOKEN_VERSION, store.get(eKey2, accountIDLocation).getValue());
@@ -271,7 +266,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testAuthTokenExpiration() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
@@ -287,7 +282,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testDeleteAuthToken() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
             public String[] getLocation() { return new String[] { "account",  ACCOUNT_ID}; }
@@ -303,7 +298,7 @@ public class TestSSDBEphemeralStore extends TestCase {
 
     @Test
     public void testDeleteLastLogon() throws Exception {
-        Assume.assumeTrue(SSDBStoreConfigured);
+        TestUtil.assumeTrue("SSDB backend is not configured", SSDBStoreConfigured);
         String lastLogon = "20160912212057.178Z";
         EphemeralLocation accountIDLocation = new EphemeralLocation() {
             @Override
