@@ -136,7 +136,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
         return ServiceException.FAILURE("unable to perform SSDB operation", e);
     }
 
-    public static class Factory implements EphemeralStore.Factory {
+    public static class Factory extends EphemeralStore.Factory {
 
         private static SSDBEphemeralStore instance;
 
@@ -198,7 +198,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
                 if (instance == null) {
                     String url;
                     try {
-                        url = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
+                        url = getURL();
                         if (url != null) {
                             @SuppressWarnings("resource")
                             JedisPool pool = getPool(url);
