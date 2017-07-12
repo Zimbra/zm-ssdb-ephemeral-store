@@ -1,12 +1,17 @@
 package com.zimbra.qa.unittest;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.TestCase;
-
-import org.junit.Assume;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.zimbra.common.service.ServiceException;
@@ -22,23 +27,23 @@ import com.zimbra.cs.ephemeral.EphemeralResult;
 import com.zimbra.cs.ephemeral.EphemeralStore;
 import com.zimbra.ssdb.SSDBEphemeralStore;
 
-public class TestSSDBEphemeralStore extends TestCase {
-    EphemeralStore store;
-    private String SAMPLE_CSRF_TOKEN_DATA =  "69643d33363a30666532376439312d656339342d346534352d383436342d3339326262383736313364383b6578703d31333a313437333735383435373138323b7369643d31303a3131353031303934343a6b";
-    private String SAMPLE_CSRF_TOKEN_DATA2 = "12356709873b29555213764d656339312d343934265d334352342d834362626333938373623313364383b6578703d313435373138323b7369643d31303a31313530333a3134373337353831303934343c72c";
-    private String SAMPLE_CSRF_TOKEN_DATA3 = "098123567552173b29535633764d69312d426534393d3342d83435232633343626932331383736364383b6578703d3134353731369643d8323b7331303530333a31313a333373134375303943831372bc343";
-    private String SAMPLE_CSRF_TOKEN_CRUMB =  "3822663c52f27487f172055ddc0918aa";
-    private String SAMPLE_CSRF_TOKEN_CRUMB2 = "2931453c52fb2487a172095ddc4908ac";
-    private String SAMPLE_CSRF_TOKEN_CRUMB3 = "2c52f931453b248095dd7a172c49c08a";
-    private String SAMPLE_AUTH_TOKEN =  "366778080";
-    private String SAMPLE_AUTH_TOKEN2 = "456779043";
-    private String SAMPLE_AUTH_TOKEN3 = "437745690";
-    private String SAMPLE_AUTH_TOKEN_VERSION = "8.7.0_GA_1659";
-    private String ACCOUNT_ID = "47e456be-b00a-465e-a1db-4b53e64fa";
+public class TestSSDBEphemeralStore {
+    private EphemeralStore store;
+    private final String SAMPLE_CSRF_TOKEN_DATA =  "69643d33363a30666532376439312d656339342d346534352d383436342d3339326262383736313364383b6578703d31333a313437333735383435373138323b7369643d31303a3131353031303934343a6b";
+    private final String SAMPLE_CSRF_TOKEN_DATA2 = "12356709873b29555213764d656339312d343934265d334352342d834362626333938373623313364383b6578703d313435373138323b7369643d31303a31313530333a3134373337353831303934343c72c";
+    private final String SAMPLE_CSRF_TOKEN_DATA3 = "098123567552173b29535633764d69312d426534393d3342d83435232633343626932331383736364383b6578703d3134353731369643d8323b7331303530333a31313a333373134375303943831372bc343";
+    private final String SAMPLE_CSRF_TOKEN_CRUMB =  "3822663c52f27487f172055ddc0918aa";
+    private final String SAMPLE_CSRF_TOKEN_CRUMB2 = "2931453c52fb2487a172095ddc4908ac";
+    private final String SAMPLE_CSRF_TOKEN_CRUMB3 = "2c52f931453b248095dd7a172c49c08a";
+    private final String SAMPLE_AUTH_TOKEN =  "366778080";
+    private final String SAMPLE_AUTH_TOKEN2 = "456779043";
+    private final String SAMPLE_AUTH_TOKEN3 = "437745690";
+    private final String SAMPLE_AUTH_TOKEN_VERSION = "8.7.0_GA_1659";
+    private final String ACCOUNT_ID = "47e456be-b00a-465e-a1db-4b53e64fa";
     private boolean SSDBStoreConfigured = false;
-    private List<Pair<EphemeralInput, EphemeralLocation>> toDelete = new ArrayList<Pair<EphemeralInput, EphemeralLocation>>();
+    private final List<Pair<EphemeralInput, EphemeralLocation>> toDelete = new ArrayList<Pair<EphemeralInput, EphemeralLocation>>();
 
-    @Override
+    @Before
     public void setUp() throws Exception {
         String ssdbUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
         String toks[] = ssdbUrl.split(":");
@@ -52,7 +57,7 @@ public class TestSSDBEphemeralStore extends TestCase {
         }
     }
 
-    @Override
+    @After
     public void tearDown() throws Exception {
         if (SSDBStoreConfigured) {
             for (Pair<EphemeralInput, EphemeralLocation> pair: toDelete) {
