@@ -7,7 +7,7 @@
   <property name="dist.lib.ext.dir" location="${dist.lib.dir}/ext"/>
   <property name="extension.dist.dir" location="${dist.lib.ext.dir}/${ext.name}"/>
   <property name="extension.deploy.dir" location="${zimbra.home.dir}/lib/ext/${ext.name}"/>
-  
+
   <target name="build-init">
     <mkdir dir="${build.classes.dir}"/>
     <mkdir dir="${dist.dir}"/>
@@ -18,8 +18,10 @@
 
   <target name="deploy" depends="jar,set-dev-version">
     <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
-  	<delete dir="${extension.deploy.dir}"/>
-  	<echo> Copying ${build.dir}/${jar.file} to ${extension.deploy.dir}</echo>
+    <delete verbose="true">
+      <fileset dir="${extension.deploy.dir}" includes="${ant.project.name}*.jar" />
+    </delete>
+    <echo> Copying ${build.dir}/${jar.file} to ${extension.deploy.dir}</echo>
     <copy todir="${extension.deploy.dir}">
       <fileset dir="${build.dir}" includes="${jar.file}" />
     </copy>
