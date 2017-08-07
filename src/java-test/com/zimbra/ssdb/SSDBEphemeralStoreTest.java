@@ -13,9 +13,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.ephemeral.EphemeralInput;
@@ -25,6 +22,9 @@ import com.zimbra.cs.ephemeral.EphemeralKey;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.EphemeralStore;
 import com.zimbra.cs.mailbox.MailboxTestUtil;
+
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 public class SSDBEphemeralStoreTest {
 
@@ -38,7 +38,7 @@ public class SSDBEphemeralStoreTest {
     public void setUp() throws Exception {
         jedis = EasyMock.mock(Jedis.class);
         mockJedisPool = EasyMock.mock(JedisPool.class);
-        MailboxTestUtil.initServer("../zm-store/");
+        MailboxTestUtil.initServer("../zm-mailbox/store/");
         Provisioning.getInstance().getConfig().setEphemeralBackendURL("ssdb:localhost:8888");
     }
 
