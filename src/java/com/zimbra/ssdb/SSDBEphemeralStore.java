@@ -54,8 +54,9 @@ public class SSDBEphemeralStore extends EphemeralStore {
         setAttributeEncoder(new SSDBAttributeEncoder());
     }
     private Jedis getResource() throws ServiceException {
-        Jedis jedis = pool.getResource();
+        Jedis jedis;
         try{
+            jedis = pool.getResource();
             jedis.ping();
         } catch (JedisException e) {
             pool.destroy();
