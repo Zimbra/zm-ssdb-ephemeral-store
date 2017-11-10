@@ -258,7 +258,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
             throw wrapJedisException(e);
         }
     }
-    static JedisPool getPool(String url) throws ServiceException {
+    private static JedisPool getPool(String url) throws ServiceException {
         String host;
         Integer port;
         String[] tokens = url.split(":");
