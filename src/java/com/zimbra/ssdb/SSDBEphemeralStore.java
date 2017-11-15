@@ -296,6 +296,10 @@ public class SSDBEphemeralStore extends EphemeralStore {
                 return jedisMethod();
             } catch (JedisException e) {
                 try {
+                    /* Jedis throws an exception when connections in the pool go stale.
+                     * Since there is no way to test a connection without trying to send data
+                     * this code makes one attempt to retry a failed request. 
+                     */
                     pool.destroy();
                     pool = getPool(url);
                     return jedisMethod();
