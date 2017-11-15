@@ -80,7 +80,6 @@ public class SSDBEphemeralStoreTest {
             public String[] getLocation() { return new String[] { "cos", "47e456be-b00a-465e-a1db-4b53e64fa" }; }
         };
         expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
-        expect(jedis.ping()).andReturn(null);
         expect(jedis.get("cos|47e456be-b00a-465e-a1db-4b53e64fa|somekey")).andReturn(null);
         jedis.close();
         replay(mockJedisPool);
@@ -103,7 +102,6 @@ public class SSDBEphemeralStoreTest {
             public String[] getLocation() { return new String[] { "cos", "47e456be-b00a-465e-a1db-4b53e64fa" }; }
         };
         expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
-        expect(jedis.ping()).andReturn(null);
         expect(jedis.del("cos|47e456be-b00a-465e-a1db-4b53e64fa|someattr")).andReturn(null);
         jedis.close();
         replay(mockJedisPool);
@@ -128,7 +126,6 @@ public class SSDBEphemeralStoreTest {
             public String[] getLocation() { return new String[] { "domain", "47e456be-b00a-465e-a1db-4b53e64fa" }; }
         };
         expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
-        expect(jedis.ping()).andReturn(null);
         expect(jedis.set("domain|47e456be-b00a-465e-a1db-4b53e64fa|testK|testD","testV|")).andReturn("testK");
         jedis.close();
         replay(mockJedisPool);
@@ -156,7 +153,6 @@ public class SSDBEphemeralStoreTest {
         };
         expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
         String val = String.format("testV|%s", exp.getMillis());
-        expect(jedis.ping()).andReturn(null);
         expect(jedis.setex("domain|47e456be-b00a-465e-a1db-4b53e64fa|testK|testD",ttl,val)).andReturn("testK");
         jedis.close();
         replay(mockJedisPool);
@@ -180,7 +176,6 @@ public class SSDBEphemeralStoreTest {
             public String[] getLocation() { return new String[] { "domain", "47e456be-b00a-465e-a1db-4b53e64fa" }; }
         };
         expect(mockJedisPool.getResource()).andReturn(jedis).atLeastOnce();
-        expect(jedis.ping()).andReturn(null);
         expect(jedis.set("domain|47e456be-b00a-465e-a1db-4b53e64fa|testK","testV|")).andReturn("testK");
         jedis.close();
         replay(mockJedisPool);
