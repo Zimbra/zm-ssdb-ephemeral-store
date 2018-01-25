@@ -47,44 +47,60 @@ import com.zimbra.cs.ldap.LdapClient;
 public class SSDBEphemeralStore extends EphemeralStore {
     public static String SSDB_EPHEMERAL_STORE = "ssdb";
     private JedisPool pool;
-    public SSDBEphemeralStore(JedisPool pool) {
-        this.pool = pool;
+    protected String url;
+    public SSDBEphemeralStore(String url) throws ServiceException {
+        this.url = url;
+        pool = getPool(url);
         setAttributeEncoder(new SSDBAttributeEncoder());
     }
+
     @Override
     public EphemeralResult get(EphemeralKey key, EphemeralLocation location) throws ServiceException {
         String encodedKey = encodeKey(key, location);
-        try (Jedis jedis = pool.getResource()) {
-            String encodedValue = jedis.get(encodedKey);
-            if(encodedValue != null) {
-                EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
-                return new EphemeralResult(key, kvp.getValue());
+        return new JedisResourceWithRetry<EphemeralResult> () {
+            @Override
+            public EphemeralResult jedisMethod() throws JedisException, ServiceException {
+                try (Jedis jedis = pool.getResource()) {
+                    String encodedValue = jedis.get(encodedKey);
+                    if(encodedValue != null) {
+                        EphemeralKeyValuePair kvp = decode(encodedKey, encodedValue);
+                        return new EphemeralResult(key, kvp.getValue());
+                    }
+                    return EphemeralResult.emptyResult(key);
+                }
             }
-        } catch (JedisException e) {
-            throw wrapJedisException(e);
-        }
-        return EphemeralResult.emptyResult(key);
+        }.callMethod();
     }
 
     @Override
     public void set(EphemeralInput attribute, EphemeralLocation location) throws ServiceException {
         String encodedKey = encodeKey(attribute, location);
         String encodedValue = encodeValue(attribute, location);
-        try (Jedis jedis = pool.getResource()) {
-            if(encodedValue != null) {
-                if(attribute.getExpiration() == null) {
-                    jedis.set(encodedKey, encodedValue);
-                } else {
-                    int ttl = (int)(attribute.getRelativeExpiration()/1000);
-                    if(ttl > 0) {
-                        jedis.setex(encodedKey, ttl, encodedValue);
+        if(encodedValue != null) {
+            if(attribute.getExpiration() == null) {
+                new JedisResourceWithRetry<String> () {
+                    @Override
+                    public String jedisMethod() throws JedisException {
+                        try (Jedis jedis = pool.getResource()) {
+                            return jedis.set(encodedKey, encodedValue);
+                        }
                     }
-                }
+                }.callMethod();
             } else {
-                this.delete(attribute.getEphemeralKey(), "", location);
+                int ttl = (int)(attribute.getRelativeExpiration()/1000);
+                if(ttl > 0) {
+                    new JedisResourceWithRetry<String> () {
+                        @Override
+                        public String jedisMethod() throws JedisException {
+                            try (Jedis jedis = pool.getResource()) {
+                                return jedis.setex(encodedKey, ttl, encodedValue);
+                            }
+                        }
+                    }.callMethod();
+                }
             }
-        } catch (JedisException e) {
-            throw wrapJedisException(e);
+        } else {
+            this.delete(attribute.getEphemeralKey(), "", location);
         }
     }
 
@@ -98,25 +114,28 @@ public class SSDBEphemeralStore extends EphemeralStore {
     public void delete(EphemeralKey key, String value, EphemeralLocation location) throws ServiceException {
         EphemeralInput attribute = new EphemeralInput(key, value);
         String encodedKey = encodeKey(attribute, location);
-        try (Jedis jedis = pool.getResource()) {
-            jedis.del(encodedKey);
-        } catch (JedisException e) {
-            throw wrapJedisException(e);
-        }
+        new JedisResourceWithRetry<Long> () {
+            @Override
+            public Long jedisMethod() throws JedisException {
+                try (Jedis jedis = pool.getResource()) {
+                    return jedis.del(encodedKey);
+                }
+            }
+        }.callMethod();
     }
 
     @Override
     public boolean has(EphemeralKey key, EphemeralLocation location) throws ServiceException {
         String encodedKey = encodeKey(key, location);
-        try (Jedis jedis = pool.getResource()) {
-            String value = jedis.get(encodedKey);
-            if(value != null) {
-                return true;
+        return new JedisResourceWithRetry<Boolean> () {
+            @Override
+            public Boolean jedisMethod() throws JedisException {
+                try (Jedis jedis = pool.getResource()) {
+                    String value = jedis.get(encodedKey);
+                    return (value != null);
+                }
             }
-        } catch (JedisException e) {
-            throw wrapJedisException(e);
-        }
-        return false;
+        }.callMethod();
     }
 
     @Override
@@ -140,35 +159,8 @@ public class SSDBEphemeralStore extends EphemeralStore {
 
         private static SSDBEphemeralStore instance;
 
-        private static JedisPool getPool(String url) throws ServiceException {
-            String host;
-            Integer port;
-            String[] tokens = url.split(":");
-            if (tokens != null && tokens.length >= 2 && tokens[0].equalsIgnoreCase(SSDB_EPHEMERAL_STORE)) {
-                host = tokens[1];
-                port = null;
-                if(tokens.length == 3) {
-                    try {
-                        port = Integer.parseInt(tokens[2]);
-                    } catch (NumberFormatException e) {
-                        throw ServiceException.FAILURE(
-                                String.format("Failed to parse SSDB port number %s", tokens[2]), e);
-                    }
-                }
-                GenericObjectPoolConfig config = getPoolConfig();
-                if(port != null) {
-                    return new JedisPool(config, host, port);
-                } else {
-                    return new JedisPool(config, host);
-                }
-            } else {
-                throw ServiceException.FAILURE(String.format(
-                        "SSDB backend URL must be of the form 'ssdb:<host>[:<port>]', got '%s'", url), null);
-            }
-        }
-
         /** Note that this falls back to hard coded defaults if LDAP is unavailable */
-        private static GenericObjectPoolConfig getPoolConfig() throws ServiceException {
+        protected static GenericObjectPoolConfig getPoolConfig() throws ServiceException {
             GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
             try {
                 LdapClient.initializeIfLDAPAvailable();
@@ -200,9 +192,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
                     try {
                         url = getURL();
                         if (url != null) {
-                            @SuppressWarnings("resource")
-                            JedisPool pool = getPool(url);
-                            instance = new SSDBEphemeralStore(pool);
+                            instance = new SSDBEphemeralStore(url);
                         }
                     } catch (ServiceException e) {
                         ZimbraLog.extensions.error("Could not create an instance of SSDBEphemeralStore", e);
@@ -228,7 +218,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
 
         @Override
         public void test(String url) throws ServiceException {
-            JedisPool pool = getPool(url);
+            JedisPool pool = SSDBEphemeralStore.getPool(url);
             try {
                 pool.getResource();
             } catch (JedisConnectionException e) {
@@ -260,12 +250,63 @@ public class SSDBEphemeralStore extends EphemeralStore {
          * The only ephemeral attribute that needs to be explicitly deleted is
          * zimbraLastLogonTimestamp. Auth and CSRF tokens will expire automatically.
          */
-        try (Jedis jedis = pool.getResource()) {
-            EphemeralKey lastLogonEphemeralKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
-            String encoded = encodeKey(lastLogonEphemeralKey, location);
-            jedis.del(encoded);
-        } catch (JedisException e) {
-            throw wrapJedisException(e);
+        new JedisResourceWithRetry<Long> () {
+            @Override
+            public Long jedisMethod() throws JedisException {
+                try (Jedis jedis = pool.getResource()) {
+                    EphemeralKey lastLogonEphemeralKey = new EphemeralKey(Provisioning.A_zimbraLastLogonTimestamp);
+                    String encoded = encodeKey(lastLogonEphemeralKey, location);
+                    return jedis.del(encoded);
+                }
+            }
+        }.callMethod();
+    }
+
+    private static JedisPool getPool(String url) throws ServiceException {
+        String host;
+        Integer port;
+        String[] tokens = url.split(":");
+        if (tokens != null && tokens.length >= 2 && tokens[0].equalsIgnoreCase(SSDB_EPHEMERAL_STORE)) {
+            host = tokens[1];
+            port = null;
+            if(tokens.length == 3) {
+                try {
+                    port = Integer.parseInt(tokens[2]);
+                } catch (NumberFormatException e) {
+                    throw ServiceException.FAILURE(
+                            String.format("Failed to parse SSDB port number %s", tokens[2]), e);
+                }
+            }
+            GenericObjectPoolConfig config = Factory.getPoolConfig();
+            if(port != null) {
+                return new JedisPool(config, host, port);
+            } else {
+                return new JedisPool(config, host);
+            }
+        } else {
+            throw ServiceException.FAILURE(String.format(
+                    "SSDB backend URL must be of the form 'ssdb:<host>[:<port>]', got '%s'", url), null);
+        }
+    }
+
+    private abstract class JedisResourceWithRetry<T> {
+        public abstract T jedisMethod() throws JedisException, ServiceException;
+        public final T callMethod() throws ServiceException {
+            try {
+                return jedisMethod();
+            } catch (JedisException e) {
+                try {
+                    /* Jedis throws an exception when connections in the pool go stale.
+                     * Since there is no way to test a connection without trying to send data
+                     * this code makes one attempt to retry a failed request. 
+                     */
+                    pool.destroy();
+                    pool = getPool(url);
+                    return jedisMethod();
+                } catch (JedisException e2) {
+                    throw wrapJedisException(e2);
+                }
+            }
         }
     }
 }
