@@ -6,7 +6,7 @@
   <dependencies>
   <dependency org="redis.clients" name="jedis" rev="2.9.0"/>
   <dependency org="javax.mail" name="mail" rev="1.4.5" />
-  <dependency org="com.google.guava" name="guava" rev="23.0" />
+  <dependency org="com.google.guava" name="guava" rev="${com.google.guava.version}" />
   <dependency org="com.unboundid" name="unboundid-ldapsdk" rev="2.3.5" />
   <dependency org="commons-cli" name="commons-cli" rev="1.2" />
   <dependency org="commons-lang" name="commons-lang" rev="2.6" />
