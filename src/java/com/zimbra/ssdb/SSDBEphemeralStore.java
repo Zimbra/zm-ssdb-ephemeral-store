@@ -185,6 +185,22 @@ public class SSDBEphemeralStore extends EphemeralStore {
         }
 
         @Override
+        public EphemeralStore getNewStore() throws ServiceException {
+            String url;
+            try {
+                url = getURL();
+                if (url != null) {
+                    return new SSDBEphemeralStore(url);
+                }
+            } catch (ServiceException e) {
+                ZimbraLog.extensions.error("Could not create a new instance of SSDBEphemeralStore", e);
+                throw e;
+            }
+            ZimbraLog.extensions.debug("No URL found to create instance of SSDBEphemeralStore");
+            return null;
+        }
+
+        @Override
         public EphemeralStore getStore() {
             synchronized (Factory.class) {
                 if (instance == null) {
