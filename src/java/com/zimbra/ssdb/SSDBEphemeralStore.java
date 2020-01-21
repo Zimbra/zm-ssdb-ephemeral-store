@@ -184,6 +184,7 @@ public class SSDBEphemeralStore extends EphemeralStore {
             return poolConfig;
         }
 
+        @Override
         public EphemeralStore getNewStore() throws ServiceException {
             String url;
             try {
