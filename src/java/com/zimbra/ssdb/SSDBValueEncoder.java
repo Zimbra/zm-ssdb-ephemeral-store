@@ -20,7 +20,7 @@ public class SSDBValueEncoder extends ValueEncoder {
 
         Long expires = input.getExpiration();
         String value = input.getValue().toString();
-		String encoded;
+        String encoded;
 
         if (expires != null && expires > 0L) {
             encoded = String.format("%s|%s", value, String.valueOf(expires));
@@ -28,16 +28,16 @@ public class SSDBValueEncoder extends ValueEncoder {
             encoded = String.format("%s|", value);
         }
 
-		if (!LC.ssdb_zok_compat.booleanValue()) {
-			return encoded;
-		}
+        if (!LC.ssdb_zimbrax_compat.booleanValue()) {
+            return encoded;
+        }
 
-		if (encoded.startsWith("{") || encoded.startsWith("[")) {
-			// Already a JSON object
-			return encoded;
-		}
+        if (encoded.startsWith("{") || encoded.startsWith("[")) {
+            // Already a JSON object
+            return encoded;
+        }
 
-		// Wrap in double-quotes b/c ZOK expects a JSON string.
-		return String.format("\"%s\"", encoded);
+        // Wrap in double-quotes b/c ZOK expects a JSON string.
+        return String.format("\"%s\"", encoded);
     }
 }
